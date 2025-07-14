@@ -1,8 +1,6 @@
 import streamlit as st
 import plotly.graph_objects as go
 from math import pi
-from io import BytesIO
-import kaleido
 
 
 def test_mass(mf, af, gf, ff, kf, tf):
@@ -199,13 +197,3 @@ if uploaded_file is not None:
                 yaxis_title="Тяга, Н"
             )
             st.plotly_chart(fig2, use_container_width=True)
-            buf = BytesIO()
-            fig2.write_image(buf, format="png", engine="kaleido")
-            buf.seek(0)
-            st.download_button(
-                "Скачать график",
-                data=buf,
-                file_name="plot.png",
-                mime="image/png",
-                key="download_plot"
-            )
