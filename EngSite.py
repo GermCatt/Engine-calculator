@@ -185,7 +185,7 @@ if uploaded_file is not None:
 
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(
-            x=list(map(lambda a: (a - t[0]) / 1000, t)), y=F,
+            x=list(map(lambda aa: (aa - t[0]) / 1000, t)), y=F,
             name="F(t)",
             line=dict(color='red', width=2),
             mode='lines'
