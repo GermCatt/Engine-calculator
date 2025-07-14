@@ -1,8 +1,8 @@
 import streamlit as st
 import plotly.graph_objects as go
 from math import pi
-import base64
 from io import BytesIO
+import kaleido
 
 
 def test_mass(mf, af, gf, ff, kf, tf):
@@ -200,12 +200,12 @@ if uploaded_file is not None:
             )
             st.plotly_chart(fig2, use_container_width=True)
             buf = BytesIO()
-            fig2.write_image(buf, format="png")
+            fig2.write_image(buf, format="png", engine="kaleido")
             buf.seek(0)
             st.download_button(
                 "Скачать график",
                 data=buf,
                 file_name="plot.png",
                 mime="image/png",
-                key="unique_download_key"
+                key="download_plot"
             )
