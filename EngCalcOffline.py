@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 from math import pi
-import streamlit as st
 
 
 def test_mass(mf, af, gf, ff, kf, tf):
@@ -52,7 +51,6 @@ with open(file, 'r') as f:  # запись нужных данных из фай
     ax.legend()
 
     # Выводим в Streamlit
-    st.pyplot(fig)
     # plt.plot(t, h, label='h(t)')
     # plt.plot(t, ax, label='ax(t)')
     # plt.plot(t, ay, label='ay(t)')
@@ -120,9 +118,9 @@ elif tip == '1':  # Первый режим работы - определени�
 
     for i in range(len(t) - 1):  # Определяем углы крена, тангажа и рыскания от времени
         dt = (t[i + 1] - t[i]) / 1000
-        fi_kr.append(fi_kr[i] + w_kr[i] * dt)
-        fi_tan.append(fi_tan[i] + w_tan[i] * dt)
-        fi_rys.append(fi_rys[i] + w_rys[i] * dt)
+        # fi_kr.append(fi_kr[i] + w_kr[i] * dt)
+        # fi_tan.append(fi_tan[i] + w_tan[i] * dt)
+        # fi_rys.append(fi_rys[i] + w_rys[i] * dt)
         v.append(v[i] + a[i] * dt)
     while True:  # Ввод пользователем коэффициента лобового сопротивления и калибра
         try:
@@ -137,6 +135,8 @@ elif tip == '1':  # Первый режим работы - определени�
     for v_i in v:  # Определение значений продольной скорости ракеты
         f_w.append(v_i ** 2 * Ro * S * cx / 2)
     g = [9.806 for _ in range(len(t))]  # ПЛЕЙСХОЛДЕР УЧЕСТЬ НАКЛОН ПОЗЖЕ
+    for i in range(len(g)):
+        a[i] = a[i] - g[i]
     k_high = 10000
     k_low = 1
     k_mid = (k_low + k_high) / 2

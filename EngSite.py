@@ -151,6 +151,8 @@ if uploaded_file is not None:
             v.append(v[i] + a[i] * dt)
             f_w.append(v[i] ** 2 * Ro * S * cx / 2)
         g = [9.806 for _ in range(len(t))]  # ПЛЕЙСХОЛДЕР УЧЕСТЬ НАКЛОН ПОЗЖЕ
+        for i in range(len(g)):
+            a[i] = a[i] - g[i]
         k_high = 10000
         k_low = 1
         k_mid = (k_low + k_high) / 2
