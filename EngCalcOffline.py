@@ -88,13 +88,13 @@ elif tip == '1':  # Первый режим работы - определени�
     ax, ay, az = ax[ind_start:ind_stop + 1], ay[ind_start:ind_stop + 1], az[ind_start:ind_stop + 1]
     wx, wy, wz = wx[ind_start:ind_stop + 1], wy[ind_start:ind_stop + 1], wz[ind_start:ind_stop + 1]
     acs, omgs = [], []
-    for i in range(len(ax)):      # создание списков acs и omgs с ускорениями и угловыми скоростями в нужном формате
+    for i in range(len(ax)):  # создание списков acs и omgs с ускорениями и угловыми скоростями в нужном формате
         acs.append(np.array([ax[i], ay[i], az[i]]))
         omgs.append(np.array([wx[i], wy[i], wz[i]]))
     dtimes = []
-    for i in range(len(t)):
+    for i in range(len(t) - 1):
         dtimes.append((t[i + 1] - t[i]) / 1000)
-    dtimes = dtimes + dtimes[0]
+    dtimes.append(dtimes[0])
     att = attitude.Attitude(0.007)
     att.calculate(dtimes, acs, omgs)
     axn, ayn, azn = [], [], []
@@ -106,7 +106,7 @@ elif tip == '1':  # Первый режим работы - определени�
     g = [-1 * i[ind] for i in att.get_gs()]     # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
     a = [axn, ayn, azn][ind]
     for i in range(len(a) // 2, len(a)):        # Получение реального момента прекращения работы двигателя
-        if a[i] < 0:
+        if a[i] < -1 * g[i]:
             t_stop = t[i]
             break
     for i in range(len(t)):                     # Определение нового конечного индекса

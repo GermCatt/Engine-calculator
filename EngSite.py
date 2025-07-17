@@ -140,27 +140,28 @@ if uploaded_file:
         t = t[ind_start:ind_stop + 1]
         ax, ay, az = ax[ind_start:ind_stop + 1], ay[ind_start:ind_stop + 1], az[ind_start:ind_stop + 1]
         wx, wy, wz = wx[ind_start:ind_stop + 1], wy[ind_start:ind_stop + 1], wz[ind_start:ind_stop + 1]
-        acs, omgs, times = [], [], []
-        for i in range(len(ax)):        # создание списков acs и omgs с ускорениями и угловыми скоростями в нужном формате
+        acs, omgs = [], []
+        for i in range(len(ax)):  # создание списков acs и omgs с ускорениями и угловыми скоростями в нужном формате
             acs.append(np.array([ax[i], ay[i], az[i]]))
             omgs.append(np.array([wx[i], wy[i], wz[i]]))
         dtimes = []
         for i in range(len(t) - 1):
             dtimes.append((t[i + 1] - t[i]) / 1000)
-        dtimes.append([0])
+        dtimes.append(dtimes[0])
         att = attitude.Attitude(0.007)
         att.calculate(dtimes, acs, omgs)
         axn, ayn, azn = [], [], []
-        for i in att.get_accs():    # Получение данных, посчитанных attitude и создание списков ускорений по осям ракеты
+        for i in att.get_accs():  # Получение данных, посчитанных attitude и создание списков ускорений по осям ракеты
             axn.append(i[0])
             ayn.append(i[1])
             azn.append(i[2])
         ind = 'xyz'.index(asix)
-        g = [-1 * i[ind] for i in att.get_gs()]     # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
+        g = [-1 * i[ind] for i in
+             att.get_gs()]  # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
         a = [axn, ayn, azn][ind]
-        for i in range(len(a) // 2, len(a)):    # Получение реального момента прекращения работы двигателя
-            if a[i] < 0:
-                t_stop2 = t[i]
+        for i in range(len(a) // 2, len(a)):  # Получение реального момента прекращения работы двигателя
+            if a[i] < -1 * g[i]:
+                t_stop = t[i]
                 break
 
     m_st = st.number_input(     # Ввод пользователем стартовой массы ракеты
