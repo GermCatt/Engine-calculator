@@ -145,7 +145,7 @@ if uploaded_file:
             acs.append(np.array([ax[i], ay[i], az[i]]))
             omgs.append(np.array([wx[i], wy[i], wz[i]]))
         dtimes = []
-        for i in range(len(t)):
+        for i in range(len(t) - 1):
             dtimes.append((t[i + 1] - t[i]) / 1000)
         dtimes = dtimes + dtimes[0]
         att = attitude.Attitude(0.007)
