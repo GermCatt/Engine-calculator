@@ -101,7 +101,7 @@ if uploaded_file:
             else:
                 st.session_state.clicks.append(clicked[0])
         if len(st.session_state.clicks) < 2:        # Запрашиваем у пользователя ввод обеих точек
-            st.warning("Выберите точку начала и конца работы двигателя на нужном графике ускорений")
+            st.warning("Выберите (кликните на) точку начала и конца работы двигателя на нужном графике ускорений")
             st.stop()
         if len(st.session_state.clicks) == 2:       # Передаём выбранные точки в переменные и показываем их пользователю
             t_start, t_stop = sorted([st.session_state.clicks[0]['x'], st.session_state.clicks[1]['x']])
