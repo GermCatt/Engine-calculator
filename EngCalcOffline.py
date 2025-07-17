@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 from math import pi
+import attitude
+import numpy as np
 
 
 def test_mass(mf, af, gf, ff, kf, tf):
@@ -45,19 +47,6 @@ with open(file, 'r') as f:  # запись нужных данных из фай
         temp.append(float(_[9]))
         pres.append(float(_[10]))
 
-    fig, ax = plt.subplots()
-    ax.plot(t, h, label="h(t)")
-    ax.set_title("График полёта")
-    ax.legend()
-
-    # Выводим в Streamlit
-    # plt.plot(t, h, label='h(t)')
-    # plt.plot(t, ax, label='ax(t)')
-    # plt.plot(t, ay, label='ay(t)')
-    # plt.plot(t, az, label='az(t)')
-    # plt.legend(loc='best')
-    # plt.show()
-
 if tip == '2':  # Второй режим. Построение графика, по которому необходимо определить диапазон и какая ось является продольной.
     plt.plot(t, h, label='h(t)')
     plt.plot(t, ax, label='ax(t)')
@@ -86,16 +75,6 @@ elif tip == '1':  # Первый режим работы - определени�
             break
         else:
             print('Неверный ввод')
-    while True:  # Сообщение пользователем данных о массе ракеты и топлива
-        try:
-            m_st = float(input('Введите стартовую массу ракеты вместе с топливом (кг):  '))
-            m_t = float(input('Введите массу топлива в двигателе (кг):  '))
-            if m_t >= m_st:
-                print('Масса топлива больше полной массы ракеты!')
-            else:
-                break
-        except ValueError:
-            print('Неверный ввод')
     ind_start = 0
     ind_stop = 0
     for i in range(len(t)):  # Определяем начальный и конечный индекс для оптимизации расчёта
@@ -108,20 +87,46 @@ elif tip == '1':  # Первый режим работы - определени�
     t = t[ind_start:ind_stop + 1]
     ax, ay, az = ax[ind_start:ind_stop + 1], ay[ind_start:ind_stop + 1], az[ind_start:ind_stop + 1]
     wx, wy, wz = wx[ind_start:ind_stop + 1], wy[ind_start:ind_stop + 1], wz[ind_start:ind_stop + 1]
-    a = [ax, ay, az]['xyz'.index(asix)]
-    w_kr = [wx, wy, wz]['xyz'.index(asix)]
-    _ = [wx, wy, wz]
-    _.pop('xyz'.index(asix))
-    w_tan, w_rys = tuple(_)
-    fi_kr, fi_tan, fi_rys = [0], [0], [0]
+    acs, omgs = [], []
+    for i in range(len(ax)):
+        acs.append(np.array([ax[i], ay[i], az[i]]))
+        omgs.append(np.array([wx[i], wy[i], wz[i]]))
+    att = attitude.Attitude(0.0075)
+    att.calculate(acs, omgs)
+    axn, ayn, azn = [], [], []
+    for i in att.get_accs():
+        axn.append(i[0])
+        ayn.append(i[1])
+        azn.append(i[2])
+    ind = 'xyz'.index(asix)
+    g = [-1 * i[ind] for i in att.get_gs()]
+    a = [axn, ayn, azn][ind]
+    input('Уточните время окончания работы двигателя (нажмите Enter)')
+    plt.plot(t, a, label=f'a{'xyz'[ind]}(t)')
+    plt.legend(loc='best')
+    plt.show()
+    t_stop = int(input('НОВОЕ время окончания работы двигателя (мс):  '))
+    for i in range(len(t)):
+        if t[i] > t_stop:
+            ind_stop = i - 1
+            break
+    t = t[:ind_stop]
+    a = a[:ind_stop]
+    g = g[:ind_stop]
     v = [0]
-
-    for i in range(len(t) - 1):  # Определяем углы крена, тангажа и рыскания от времени
+    for i in range(len(t) - 1):  # Определяем скорость от времени
         dt = (t[i + 1] - t[i]) / 1000
-        # fi_kr.append(fi_kr[i] + w_kr[i] * dt)
-        # fi_tan.append(fi_tan[i] + w_tan[i] * dt)
-        # fi_rys.append(fi_rys[i] + w_rys[i] * dt)
         v.append(v[i] + a[i] * dt)
+    while True:  # Сообщение пользователем данных о массе ракеты и топлива
+        try:
+            m_st = float(input('Введите стартовую массу ракеты вместе с топливом (кг):  '))
+            m_t = float(input('Введите массу топлива в двигателе (кг):  '))
+            if m_t >= m_st:
+                print('Масса топлива больше полной массы ракеты!')
+            else:
+                break
+        except ValueError:
+            print('Неверный ввод')
     while True:  # Ввод пользователем коэффициента лобового сопротивления и калибра
         try:
             cx = float(input('Введите коэффициент базового лобового сопротивления (берётся из OR):  '))
@@ -134,9 +139,6 @@ elif tip == '1':  # Первый режим работы - определени�
     f_w = [0]
     for v_i in v:  # Определение значений продольной скорости ракеты
         f_w.append(v_i ** 2 * Ro * S * cx / 2)
-    g = [9.806 for _ in range(len(t))]  # ПЛЕЙСХОЛДЕР УЧЕСТЬ НАКЛОН ПОЗЖЕ
-    for i in range(len(g)):
-        a[i] = a[i] - g[i]
     k_high = 10000
     k_low = 1
     k_mid = (k_low + k_high) / 2

@@ -1,6 +1,9 @@
 import streamlit as st
 import plotly.graph_objects as go
 from math import pi
+import attitude
+import numpy as np
+from streamlit_plotly_events import plotly_events
 
 
 def test_mass(mf, af, gf, ff, kf, tf):
@@ -15,93 +18,147 @@ st.title("Калькулятор характеристик двигателя")
 st.write("Данный калькулятор позволяет рассчитать полный импульс двигателя, а также тяговый профиль двигателя, базируясь на данных с бортового самописца, а также на геометрических характеристиках ракеты")
 
 uploaded_file = st.file_uploader("Чтение файлов телеметрии. Формат: время (с), ускорения по трём осям (м/с^2), угловая скорость по трём осям (рад/c), высота (м), температура (°C), давление (Па)", type="txt")
+if uploaded_file:
+    try:
+        t, ax, ay, az, wx, wy, wz, h, temp, pres = [], [], [], [], [], [], [], [], [], []
+        file_content = uploaded_file.read().decode("utf-8")
+        lines = file_content.splitlines()
+        flag = True
+        st.write("Файл обрабатывается")
+        for line in lines[1:]:
+            _ = line[:-2].split(sep=',')
+            t.append(float(_[0]))
+            ax.append(float(_[1]))
+            ay.append(float(_[2]))
+            az.append(float(_[3]))
+            wx.append((float(_[4])))
+            wy.append(float(_[5]))
+            wz.append(float(_[6]))
+            h.append(float(_[7]))
+            temp.append(float(_[9]))
+            pres.append(float(_[10]))
+        t0 = 0
+        for i in range(len(h)):
+            if h[i] >= 100:
+                t0 = t[i]
+                break
+        tmin = t0 - 30000
+        tmax = t0 + 130000
+        imin = 0
+        imax = 0
+        for i in range(len(t)):  # Определяем начальный и конечный индекс для оптимизации расчёта
+            if t[i] >= tmin and not imin:
+                imin = i
+            elif t[i] > tmax:
+                imax = i - 1
+                break
+        t = t[imin:imax]
+        ax, ay, az = ax[imin:imax], ay[imin:imax], az[imin:imax]
+        wx, wy, wz = wx[imin:imax], wy[imin:imax], wz[imin:imax]
+        h, temp, pres = h[imin:imax], temp[imin:imax], pres[imin:imax]
+        st.write("Обработка файла завершена")
+        if 'clicks' not in st.session_state:
+            st.session_state.clicks = []
+            t_start = 0
+            t_stop = 0
 
-if uploaded_file is not None:
-    t, ax, ay, az, wx, wy, wz, h, temp, pres = [], [], [], [], [], [], [], [], [], []
-    file_content = uploaded_file.read().decode("utf-8")
-    lines = file_content.splitlines()
-    flag = True
-    st.write("Файл обрабатывается")
-    for line in lines:
-        if flag:
-            flag = False
-            continue
-        _ = line[:-2].split(sep=',')
-        t.append(float(_[0]))
-        ax.append(float(_[1]))
-        ay.append(float(_[2]))
-        az.append(float(_[3]))
-        wx.append((float(_[4])))
-        wy.append(float(_[5]))
-        wz.append(float(_[6]))
-        h.append(float(_[7]))
-        temp.append(float(_[9]))
-        pres.append(float(_[10]))
-    st.write("Обработка файла завершена")
-    if st.session_state.get("show_plot", False):
-        x = t
-        y1 = h
-        y2 = ax
-        y3 = ay
-        y4 = az
+        if 'ignore_next_click' not in st.session_state:
+            st.session_state.ignore_next_click = False
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=x, y=y1,
+            x=t, y=h,
             name="h(t)",
             line=dict(color='blue', width=2),
             mode='lines'
         ))
 
         fig.add_trace(go.Scatter(
-            x=x, y=y2,
+            x=t, y=ax,
             name="ax(t)",
-            line=dict(color='red', width=2, dash='dash'),
+            line=dict(color='red', width=2),
             mode='lines'
         ))
 
         fig.add_trace(go.Scatter(
-            x=x, y=y3,
+            x=t, y=ay,
             name="ay(t)",
-            line=dict(color='green', width=3),
+            line=dict(color='green', width=2),
             mode='lines'
         ))
         fig.add_trace(go.Scatter(
-            x=x, y=y4,
+            x=t, y=az,
             name="az(t)",
-            line=dict(color='orange', width=3),
+            line=dict(color='orange', width=2),
             mode='lines'
         ))
-        st.plotly_chart(fig, use_container_width=True)
-        if st.button("Свернуть график (повысит производительность)"):
-            st.session_state.show_plot = False
+        fig.update_layout(title='График полётных характеристик', clickmode='event+select')
+        clicked = plotly_events(fig, click_event=True, hover_event=False)
+        if clicked and len(st.session_state.clicks) < 2:
+            if st.session_state.ignore_next_click:
+                st.session_state.ignore_next_click = False
+            else:
+                st.session_state.clicks.append(clicked[0])
+        if len(st.session_state.clicks) < 2:
+            st.warning("Выберите точку начала и конца работы двигателя на нужном графике ускорений")
+            st.stop()
+        if len(st.session_state.clicks) == 2:
+            t_start, t_stop = sorted([st.session_state.clicks[0]['x'], st.session_state.clicks[1]['x']])
+            st.write(f"Время начала работы двигателя: {t_start}")
+            st.write(f"Время окончания работы двигателя: {t_stop}")
+            asix_base = st.session_state.clicks[0]['curveNumber']
+        else:
+            st.write("Выберите точку начала и конца работы двигателя")
+        # Кнопка сброса
+        if st.button("Сбросить выбор"):
+            st.session_state.clicks = []
+            st.session_state.ignore_next_click = True
             st.rerun()
-    else:
-        if st.button("Развернуть график"):
-            st.session_state.show_plot = True
-            st.rerun()
-
-    t_start = st.number_input(
-        "Время НАЧАЛА работы двигателя (мс)",
-        min_value=0.0,
-        step=1.0,
-        key='num1'
-    )
-    t_stop = 0
-    if t_start:
-        t_stop = st.number_input(
-            "Время ОКОНЧАНИЯ работы двигателя (мс)",
-            min_value=t_start,
-            step=1.0,
-            key='num2'
+    except Exception as e:
+        st.error(f"Ошибка обработки файла: {str(e)}")
+    try:
+        asix = st.selectbox(
+            "Какая ось является продольной осью ракеты?",
+            ["x", "y", "z"],
+            index=asix_base - 1,
+            key='num3'
         )
+    except Exception:
+        st.error("Точки необходимо выбирать на любом из графиков ускорений, а не высоты")
+        st.stop()
+    t_stop2 = 0
+    if t_start and t_stop:
+        ind_start = 0
+        ind_stop = 0
+        for i in range(len(t)):  # Определяем начальный и конечный индекс для оптимизации расчёта
+            if t[i] >= t_start and not ind_start:
+                ind_start = i
+            elif t[i] > t_stop:
+                ind_stop = i - 1
+                break
+        # Пересоздаём списки для экономии памяти, отсекаем лишнее
+        t = t[ind_start:ind_stop + 1]
+        ax, ay, az = ax[ind_start:ind_stop + 1], ay[ind_start:ind_stop + 1], az[ind_start:ind_stop + 1]
+        wx, wy, wz = wx[ind_start:ind_stop + 1], wy[ind_start:ind_stop + 1], wz[ind_start:ind_stop + 1]
+        acs, omgs = [], []
+        for i in range(len(ax)):
+            acs.append(np.array([ax[i], ay[i], az[i]]))
+            omgs.append(np.array([wx[i], wy[i], wz[i]]))
+        att = attitude.Attitude(0.0075)
+        att.calculate(acs, omgs)
+        axn, ayn, azn = [], [], []
+        for i in att.get_accs():
+            axn.append(i[0])
+            ayn.append(i[1])
+            azn.append(i[2])
+        ind = 'xyz'.index(asix)
+        g = [-1 * i[ind] for i in att.get_gs()]
+        a = [axn, ayn, azn][ind]
+        for i in range(len(a) // 2, len(a)):
+            if a[i] < 0:
+                t_stop2 = t[i]
+                break
 
-    asix = st.selectbox(
-        "Какая ось является продольной осью ракеты?",
-        ["x", "y", "z"],
-        index=0,
-        key='num3'
-    )
     m_st = st.number_input(
         "Стартовая масса ракеты вместе с топливом (кг)",
         min_value=0.0,
@@ -124,24 +181,15 @@ if uploaded_file is not None:
         min_value=0.0,
         key='num7'
     )
-    if t_start and t_stop and cx and d and m_st and m_t:
-        ind_start = 0
-        ind_stop = 0
-        for i in range(len(t)):  # Определяем начальный и конечный индекс для оптимизации расчёта
-            if t[i] >= t_start and not ind_start:
-                ind_start = i
-            elif t[i] > t_stop:
-                ind_stop = i - 1
+
+    if all([t_stop2, m_t, cx, d]):
+        for i in range(len(t)):
+            if t[i] > t_stop2:
+                ind_stop2 = i - 1
                 break
-        # Пересоздаём списки для экономии памяти, отсекаем лишнее
-        t = t[ind_start:ind_stop + 1]
-        ax, ay, az = ax[ind_start:ind_stop + 1], ay[ind_start:ind_stop + 1], az[ind_start:ind_stop + 1]
-        wx, wy, wz = wx[ind_start:ind_stop + 1], wy[ind_start:ind_stop + 1], wz[ind_start:ind_stop + 1]
-        a = [ax, ay, az]['xyz'.index(asix)]
-        w_kr = [wx, wy, wz]['xyz'.index(asix)]
-        _ = [wx, wy, wz]
-        _.pop('xyz'.index(asix))
-        w_tan, w_rys = tuple(_)
+        t = t[:ind_stop2]
+        a = a[:ind_stop2]
+        g = g[:ind_stop2]
         S = pi * (d / 1000) ** 2 / 4
         Ro = pres[ind_start - 50] * 0.029 / (8.31 * (temp[ind_start - 50] + 273))
         v = [0]
@@ -150,9 +198,6 @@ if uploaded_file is not None:
             dt = (t[i + 1] - t[i]) / 1000
             v.append(v[i] + a[i] * dt)
             f_w.append(v[i] ** 2 * Ro * S * cx / 2)
-        g = [9.806 for _ in range(len(t))]  # ПЛЕЙСХОЛДЕР УЧЕСТЬ НАКЛОН ПОЗЖЕ
-        for i in range(len(g)):
-            a[i] = a[i] - g[i]
         k_high = 10000
         k_low = 1
         k_mid = (k_low + k_high) / 2
@@ -177,7 +222,7 @@ if uploaded_file is not None:
             m_i = m_st
             F = [0]
             p = 0
-            for i in range(len(t) - 1):  # Определение силы тяги и полного импульса
+            for i in range(len(t) - 1):  # Определение силы тяги и полного имп ульса
                 dt = (t[i + 1] - t[i]) / 1000
                 F.append(m_i * (a[i] + g[i]) + f_w[i])
                 p += (m_i * (a[i] + g[i]) + f_w[i]) * dt
