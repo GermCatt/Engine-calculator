@@ -147,7 +147,7 @@ if uploaded_file:
         dtimes = []
         for i in range(len(t) - 1):
             dtimes.append((t[i + 1] - t[i]) / 1000)
-        dtimes = dtimes + dtimes[0]
+        dtimes.append([0])
         att = attitude.Attitude(0.007)
         att.calculate(dtimes, acs, omgs)
         axn, ayn, azn = [], [], []
