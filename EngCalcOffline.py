@@ -91,8 +91,12 @@ elif tip == '1':  # Первый режим работы - определени�
     for i in range(len(ax)):      # создание списков acs и omgs с ускорениями и угловыми скоростями в нужном формате
         acs.append(np.array([ax[i], ay[i], az[i]]))
         omgs.append(np.array([wx[i], wy[i], wz[i]]))
-    att = attitude.Attitude(0.0075)
-    att.calculate(acs, omgs)
+    dtimes = []
+    for i in range(len(t)):
+        dtimes.append((t[i + 1] - t[i]) / 1000)
+    dtimes = dtimes + dtimes[0]
+    att = attitude.Attitude(0.007)
+    att.calculate(dtimes, acs, omgs)
     axn, ayn, azn = [], [], []
     for i in att.get_accs():    # Получение данных, посчитанных attitude и создание списков ускорений по осям ракеты
         axn.append(i[0])
