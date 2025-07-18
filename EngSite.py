@@ -135,47 +135,6 @@ if uploaded_file:
         st.error("Точки необходимо выбирать на любом из графиков ускорений, а не высоты")
         st.stop()
     t_stop2 = 0
-    if t_start and t_stop:
-        ind_start = 0
-        ind_stop = 0
-        for i in range(len(t)):  # Определяем начальный и конечный индекс для оптимизации расчёта
-            if t[i] >= t_start and not ind_start:
-                ind_start = i
-            elif t[i] > t_stop:
-                ind_stop = i - 1
-                break
-        # Пересоздаём списки для удобства
-        t = t[ind_start:ind_stop + 1]
-        ax, ay, az = ax[ind_start:ind_stop + 1], ay[ind_start:ind_stop + 1], az[ind_start:ind_stop + 1]
-        wx, wy, wz = wx[ind_start:ind_stop + 1], wy[ind_start:ind_stop + 1], wz[ind_start:ind_stop + 1]
-        acs, omgs = [], []
-        for i in range(len(ax)):  # создание списков acs и omgs с ускорениями и угловыми скоростями в нужном формате
-            acs.append(np.array([ax[i], ay[i], az[i]]))
-            omgs.append(np.array([wx[i], wy[i], wz[i]]))
-        dtimes = []
-        for i in range(len(t) - 1):
-            dtimes.append((t[i + 1] - t[i]) / 1000)
-        dtimes.append(dtimes[0])
-        att = attitude.Attitude(0.007)
-        att.calculate(dtimes, acs, omgs)
-        axn, ayn, azn = [], [], []
-        for i in att.get_accs():  # Получение данных, посчитанных attitude и создание списков ускорений по осям ракеты
-            axn.append(i[0])
-            ayn.append(i[1])
-            azn.append(i[2])
-        ind = 'xyz'.index(asix)
-        g = [-1 * i[ind] for i in
-             att.get_gs()]  # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
-        a = [axn, ayn, azn][ind]
-        for i in range(len(a) // 2):
-            if a[i + 1] - a[i] > 1.5:
-                ind_start2 = i
-                break
-        for i in range(len(a) // 2, len(a)):  # Получение реального момента прекращения работы двигателя
-            if a[i] < -1 * g[i]:
-                ind_stop2 = i
-                break
-
     m_st = st.number_input(     # Ввод пользователем стартовой массы ракеты
         "Стартовая масса ракеты вместе с топливом (кг)",
         min_value=0.0,
@@ -205,25 +164,67 @@ if uploaded_file:
         key='num7'
     )
 
-    if all([ind_stop2, ind_start2, m_t, cx, d]):
-        # Пересоздаём списки для удобства
-        t = t[ind_start2:ind_stop2 + 1]
-        a = a[ind_start2:ind_stop2 + 1]
-        g = g[ind_start2:ind_stop2 + 1]
-        S = pi * (d / 1000) ** 2 / 4
-        Ro = pres[ind_start - 50] * 0.029 / (8.31 * (temp[ind_start - 50] + 273))   # Плотность воздуха, получается через уравнение Менделева-Клапейрона
-        v = [0]
-        f_w = [0]
-        for i in range(len(t) - 1):
-            dt = (t[i + 1] - t[i]) / 1000
-            v.append(v[i] + a[i] * dt)      # Скорость в каждый момент времени через интегрирование ускорений методом Эйлера
-            f_w.append(v[i] ** 2 * Ro * S * cx / 2)     # Сила сопротивления воздуха в каждый момент времени через скорость и вводимые параметры
-        k_high = 10000
-        k_low = 1
-        k_mid = (k_low + k_high) / 2
-        m_tol = m_st * 10 ** -7  # Окрестность для метода бисекции
-        it = 0
+    if all([m_st, m_t, cx, d]):
         if st.button("Выполнить расчёты", key="calculate"):
+            ind_start = 0
+            ind_stop = 0
+            for i in range(len(t)):  # Определяем начальный и конечный индекс для оптимизации расчёта
+                if t[i] >= t_start and not ind_start:
+                    ind_start = i
+                elif t[i] > t_stop:
+                    ind_stop = i - 1
+                    break
+            # Пересоздаём списки для удобства
+            t = t[ind_start:ind_stop + 1]
+            ax, ay, az = ax[ind_start:ind_stop + 1], ay[ind_start:ind_stop + 1], az[ind_start:ind_stop + 1]
+            wx, wy, wz = wx[ind_start:ind_stop + 1], wy[ind_start:ind_stop + 1], wz[ind_start:ind_stop + 1]
+            acs, omgs = [], []
+            for i in range(len(ax)):  # создание списков acs и omgs с ускорениями и угловыми скоростями в нужном формате
+                acs.append(np.array([ax[i], ay[i], az[i]]))
+                omgs.append(np.array([wx[i], wy[i], wz[i]]))
+            dtimes = []
+            for i in range(len(t) - 1):
+                dtimes.append((t[i + 1] - t[i]) / 1000)
+            dtimes.append(dtimes[0])
+            att = attitude.Attitude(0.007)
+            att.calculate(dtimes, acs, omgs)
+            axn, ayn, azn = [], [], []
+            for i in att.get_accs():  # Получение данных, посчитанных attitude и создание списков ускорений по осям ракеты
+                axn.append(i[0])
+                ayn.append(i[1])
+                azn.append(i[2])
+            ind = 'xyz'.index(asix)
+            g = [-1 * i[ind] for i in
+                 att.get_gs()]  # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
+            a = [axn, ayn, azn][ind]
+            for i in range(len(a) // 2):
+                if a[i + 1] - a[i] > 1.5:
+                    ind_start2 = i
+                    break
+            for i in range(len(a) // 2, len(a)):  # Получение реального момента прекращения работы двигателя
+                if a[i] < -1 * g[i]:
+                    ind_stop2 = i
+                    break
+            # Пересоздаём списки для удобства
+            t = t[ind_start2:ind_stop2 + 1]
+            a = a[ind_start2:ind_stop2 + 1]
+            g = g[ind_start2:ind_stop2 + 1]
+            S = pi * (d / 1000) ** 2 / 4
+            Ro = pres[ind_start - 50] * 0.029 / (8.31 * (temp[
+                                                             ind_start - 50] + 273))  # Плотность воздуха, получается через уравнение Менделева-Клапейрона
+            v = [0]
+            f_w = [0]
+            for i in range(len(t) - 1):
+                dt = (t[i + 1] - t[i]) / 1000
+                v.append(
+                    v[i] + a[i] * dt)  # Скорость в каждый момент времени через интегрирование ускорений методом Эйлера
+                f_w.append(v[
+                               i] ** 2 * Ro * S * cx / 2)  # Сила сопротивления воздуха в каждый момент времени через скорость и вводимые параметры
+            k_high = 10000
+            k_low = 1
+            k_mid = (k_low + k_high) / 2
+            m_tol = m_st * 10 ** -7  # Окрестность для метода бисекции
+            it = 0
             while True:  # Определение коэффициента пропорциональности k методом бисекции
                 it += 1
                 if (test_mass(m_st, a, g, f_w, k_low, t) - m_st + m_t) * (
