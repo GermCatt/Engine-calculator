@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from math import pi
 import attitude
 import numpy as np
-from streamlit_plotly_events import plotly_events
+import io
 
 
 def test_mass(mf, af, gf, ff, kf, tf):  # Функция, выполняющая все итерации метода Эйлера для расчёта конечной массы в зависимости от k
@@ -14,36 +14,44 @@ def test_mass(mf, af, gf, ff, kf, tf):  # Функция, выполняющая
     return m_if
 
 
+@st.cache_data(show_spinner="Чтение и обработка файла...")
+def parse_uploaded_file(file_bytes: bytes):
+    t, ax, ay, az = [], [], [], []
+    wx, wy, wz = [], [], []
+    h, temp, pres = [], [], []
+    with io.TextIOWrapper(io.BytesIO(file_bytes), encoding="utf-8") as f:
+        next(f)
+        for line in f:
+            values = line.strip().split(',')
+            t.append(float(values[0]))
+            ax.append(float(values[1]))
+            ay.append(float(values[2]))
+            az.append(float(values[3]))
+            wx.append(float(values[4]))
+            wy.append(float(values[5]))
+            wz.append(float(values[6]))
+            h.append(float(values[7]))
+            temp.append(float(values[9]))
+            pres.append(float(values[10]))
+
+    return t, ax, ay, az, wx, wy, wz, h, temp, pres
+
+
 st.title("Калькулятор характеристик двигателя")
 st.write("Данный калькулятор позволяет рассчитать полный импульс двигателя, а также тяговый профиль двигателя, базируясь на данных с бортового самописца, а также на геометрических характеристиках ракеты")
 
 uploaded_file = st.file_uploader("Чтение файлов телеметрии. Формат: время (с), ускорения по трём осям (м/с^2), угловая скорость по трём осям (рад/c), высота (м), температура (°C), давление (Па)", type="txt")
-if 'last_uploaded_filename' not in st.session_state:
-    st.session_state.last_uploaded_filename = None
-
-if uploaded_file is not None:
-    if uploaded_file.name != st.session_state.last_uploaded_filename:
-        st.session_state.clear()
-        st.session_state.last_uploaded_filename = uploaded_file.name
-        st.rerun()
+t = []
 if uploaded_file:
     try:
-        t, ax, ay, az, wx, wy, wz, h, temp, pres = [], [], [], [], [], [], [], [], [], []
-        file_content = uploaded_file.read().decode("utf-8")
-        lines = file_content.splitlines()
-        st.write("Файл обрабатывается")
-        for line in lines[1:]:      # запись данных из файла в списки
-            _ = line[:-2].split(sep=',')
-            t.append(float(_[0]))
-            ax.append(float(_[1]))
-            ay.append(float(_[2]))
-            az.append(float(_[3]))
-            wx.append((float(_[4])))
-            wy.append(float(_[5]))
-            wz.append(float(_[6]))
-            h.append(float(_[7]))
-            temp.append(float(_[9]))
-            pres.append(float(_[10]))
+        file_bytes = uploaded_file.getvalue()
+        t, ax, ay, az, wx, wy, wz, h, temp, pres = parse_uploaded_file(file_bytes)
+    except Exception as e:
+        print(f'Ошибка чтения файла: {e}')
+if t:
+    try:
+        del uploaded_file
+        uploaded_file = 0
         t0 = 0
         for i in range(len(h)):     # Сокращение диапазона данных для оптимизации построения графика
             if h[i] >= 100:
@@ -52,9 +60,8 @@ if uploaded_file:
         tmin = t0 - 30000
         tmax = t0 + 130000
         imin = 0
-        imax = 0
-        file_size = uploaded_file.size
-        if file_size >= 5 * 2 ** 10 * 2 ** 10:
+        imax = len(t)
+        if len(t) >= 7500:
             for i in range(len(t) - 1):  # Определяем начальный и конечный индекс для сокращения списков
                 if t[i] >= tmin and not imin:
                     imin = i
@@ -104,8 +111,8 @@ if uploaded_file:
         key='num1',
         step=1.0
     )
+    t_stop = 0
     if t_start:
-
         t_stop = st.number_input(  # Ввод пользователем стартовой массы ракеты
             "Время окончания работы двигателя (мс)",
             min_value=float(t_start),
@@ -115,9 +122,35 @@ if uploaded_file:
     asix = st.selectbox(  # Задаём направление продольной оси с возможностью его изменения пользователем
         "Какая ось является продольной осью ракеты?",
         ["x", "y", "z"],
-        index=0,
         key='num3'
     )
+    fig3 = go.Figure()
+    if all([t_start, t_stop > t_start, asix]):
+        fig3.add_trace(go.Scatter(
+            x=t, y=[ax, ay, az]['xyz'.index(asix)],
+            name="h(t)",
+            line=dict(color='blue', width=2),
+            mode='lines'
+        ))
+        fig3.add_trace(go.Scatter(
+            x=t, y=[ax, ay, az]['xyz'.index(asix)],
+            name="h(t)",
+            line=dict(color='blue', width=2),
+            mode='lines'
+        ))
+        fig3.add_trace(go.Scatter(
+            x=[t_start] * 2, y=[min([ax, ay, az]['xyz'.index(asix)]), max([ax, ay, az]['xyz'.index(asix)])],
+            name="h(t)",
+            line=dict(color='red', width=2),
+            mode='lines'
+        ))
+        fig3.add_trace(go.Scatter(
+            x=[t_stop] * 2, y=[min([ax, ay, az]['xyz'.index(asix)]), max([ax, ay, az]['xyz'.index(asix)])],
+            name="h(t)",
+            line=dict(color='red', width=2),
+            mode='lines'
+        ))
+        st.plotly_chart(fig3, use_container_width=True)
     m_st = st.number_input(     # Ввод пользователем стартовой массы ракеты
         "Стартовая масса ракеты вместе с топливом (кг)",
         min_value=0.0,
