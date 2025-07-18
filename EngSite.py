@@ -18,6 +18,14 @@ st.title("Калькулятор характеристик двигателя")
 st.write("Данный калькулятор позволяет рассчитать полный импульс двигателя, а также тяговый профиль двигателя, базируясь на данных с бортового самописца, а также на геометрических характеристиках ракеты")
 
 uploaded_file = st.file_uploader("Чтение файлов телеметрии. Формат: время (с), ускорения по трём осям (м/с^2), угловая скорость по трём осям (рад/c), высота (м), температура (°C), давление (Па)", type="txt")
+if 'last_uploaded_filename' not in st.session_state:
+    st.session_state.last_uploaded_filename = None
+
+if uploaded_file is not None:
+    if uploaded_file.name != st.session_state.last_uploaded_filename:
+        st.session_state.clear()
+        st.session_state.last_uploaded_filename = uploaded_file.name
+        st.rerun()
 if uploaded_file:
     try:
         t, ax, ay, az, wx, wy, wz, h, temp, pres = [], [], [], [], [], [], [], [], [], []
