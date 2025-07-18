@@ -160,7 +160,7 @@ if uploaded_file:
              att.get_gs()]  # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
         a = [axn, ayn, azn][ind]
         for i in range(len(a) // 2, len(a)):  # Получение реального момента прекращения работы двигателя
-            if a[i] < -1 * g[i]:
+            if a[i] < -5:
                 t_stop = t[i]
                 break
 
