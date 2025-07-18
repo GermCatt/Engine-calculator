@@ -105,8 +105,8 @@ if uploaded_file:
             st.stop()
         if len(st.session_state.clicks) == 2:       # Передаём выбранные точки в переменные и показываем их пользователю
             t_start, t_stop = sorted([st.session_state.clicks[0]['x'], st.session_state.clicks[1]['x']])
-            st.write(f"Время начала работы двигателя: {t_start}")
-            st.write(f"Время окончания работы двигателя: {t_stop}")
+            st.write(f"Время начала работы двигателя: {t_start} мс")
+            st.write(f"Время окончания работы двигателя: {t_stop} мс")
             asix_base = st.session_state.clicks[0]['curveNumber']
         else:
             st.write("Выберите точку начала и конца работы двигателя")
@@ -160,8 +160,8 @@ if uploaded_file:
              att.get_gs()]  # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
         a = [axn, ayn, azn][ind]
         for i in range(len(a) // 2, len(a)):  # Получение реального момента прекращения работы двигателя
-            if a[i] < -5:
-                t_stop = t[i]
+            if a[i] < -1 * g[i]:
+                t_stop2 = t[i]
                 break
 
     m_st = st.number_input(     # Ввод пользователем стартовой массы ракеты
