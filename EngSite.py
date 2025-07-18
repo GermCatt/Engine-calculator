@@ -67,14 +67,6 @@ if uploaded_file:
             wx, wy, wz = wx[imin:imax], wy[imin:imax], wz[imin:imax]
             h, temp, pres = h[imin:imax], temp[imin:imax], pres[imin:imax]
         st.write("Обработка файла завершена")
-        if 'clicks' not in st.session_state:        # Создание переменной, хранящей координаты точек, на которые кликнул пользователь
-            st.session_state.clicks = []        # Переменная, хранящая координаты последней точки, по которой кликнул пользователь
-            t_start = 0
-            t_stop = 0
-
-        if 'ignore_next_click' not in st.session_state:     # Булева переменная, необходима для корректной работы кнопки сброса заданных точек
-            st.session_state.ignore_next_click = False
-
         # Задаём все графики и их параметры
         fig = go.Figure()
         fig.add_trace(go.Scatter(
@@ -103,40 +95,29 @@ if uploaded_file:
             line=dict(color='orange', width=2),
             mode='lines'
         ))
-        fig.update_layout(clickmode='event+select')
-        clicked = plotly_events(fig, click_event=True, hover_event=False)
-        if clicked and len(st.session_state.clicks) < 2:    # Передаём в переменную последнюю точку, выбранную пользователем
-            if st.session_state.ignore_next_click:          # Необходима для корректной работы кнопки сброса
-                st.session_state.ignore_next_click = False
-            else:
-                st.session_state.clicks.append(clicked[0])
-        if len(st.session_state.clicks) < 2:        # Запрашиваем у пользователя ввод обеих точек
-            st.warning("Выберите (кликните на) точку начала и конца работы двигателя на нужном графике ускорений")
-            st.stop()
-        if len(st.session_state.clicks) == 2:       # Передаём выбранные точки в переменные и показываем их пользователю
-            t_start, t_stop = sorted([st.session_state.clicks[0]['x'], st.session_state.clicks[1]['x']])
-            st.write(f"Время начала работы двигателя: {t_start} мс")
-            st.write(f"Время окончания работы двигателя: {t_stop} мс")
-            asix_base = st.session_state.clicks[0]['curveNumber']
-        else:
-            st.write("Выберите точку начала и конца работы двигателя")
-        if st.button("Сбросить выбор"):        # Кнопка сброса
-            st.session_state.clicks = []
-            st.session_state.ignore_next_click = True
-            st.rerun()
+        st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
         st.error(f"Ошибка обработки файла: {str(e)}")
-    try:
-        asix = st.selectbox(        # Задаём направление продольной оси с возможностью его изменения пользователем
-            "Какая ось является продольной осью ракеты?",
-            ["x", "y", "z"],
-            index=asix_base - 1,
-            key='num3'
+    t_start = st.number_input(  # Ввод пользователем стартовой массы ракеты
+        "Время начала работы двигателя (мс)",
+        min_value=0.0,
+        key='num1',
+        step=1.0
+    )
+    if t_start:
+
+        t_stop = st.number_input(  # Ввод пользователем стартовой массы ракеты
+            "Время окончания работы двигателя (мс)",
+            min_value=float(t_start),
+            key='num2',
+            step=1.0
         )
-    except Exception:
-        st.error("Точки необходимо выбирать на любом из графиков ускорений, а не высоты")
-        st.stop()
-    t_stop2 = 0
+    asix = st.selectbox(  # Задаём направление продольной оси с возможностью его изменения пользователем
+        "Какая ось является продольной осью ракеты?",
+        ["x", "y", "z"],
+        index=0,
+        key='num3'
+    )
     m_st = st.number_input(     # Ввод пользователем стартовой массы ракеты
         "Стартовая масса ракеты вместе с топливом (кг)",
         min_value=0.0,
@@ -199,6 +180,8 @@ if uploaded_file:
             g = [-1 * i[ind] for i in
                  att.get_gs()]  # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
             a = [axn, ayn, azn][ind]
+            ind_stop2 = ind_stop
+            ind_start2 = ind_start
             for i in range(len(a) // 2):
                 if a[i + 1] - a[i] > 1.5:
                     ind_start2 = i
@@ -268,10 +251,3 @@ if uploaded_file:
                 yaxis_title="Тяга, Н"
             )
             st.plotly_chart(fig2, use_container_width=True)
-if __name__ == "__main__":
-    import sys
-    import os
-    if getattr(sys, 'frozen', False):  # Если это собранный .exe файл
-        import streamlit.web.cli as stcli
-        sys.argv = ["streamlit", "run", os.path.abspath(__file__)]
-        sys.exit(stcli.main())
