@@ -45,7 +45,7 @@ if uploaded_file:
             temp.append(float(_[9]))
             pres.append(float(_[10]))
         t0 = 0
-        for i in range(len(h)):     #Сокращение диапазона данных для оптимизации построения графика
+        for i in range(len(h)):     # Сокращение диапазона данных для оптимизации построения графика
             if h[i] >= 100:
                 t0 = t[i]
                 break
@@ -167,9 +167,13 @@ if uploaded_file:
         g = [-1 * i[ind] for i in
              att.get_gs()]  # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
         a = [axn, ayn, azn][ind]
+        for i in range(len(a) // 2):
+            if a[i + 1] - a[i] > 1.5:
+                ind_start2 = i
+                break
         for i in range(len(a) // 2, len(a)):  # Получение реального момента прекращения работы двигателя
             if a[i] < -1 * g[i]:
-                t_stop2 = t[i]
+                ind_stop2 = i
                 break
 
     m_st = st.number_input(     # Ввод пользователем стартовой массы ракеты
@@ -201,15 +205,11 @@ if uploaded_file:
         key='num7'
     )
 
-    if all([t_stop2, m_t, cx, d]):
-        for i in range(len(t)):     # Определяем начальный и конечный индекс для оптимизации расчёта
-            if t[i] > t_stop2:
-                ind_stop2 = i - 1
-                break
+    if all([ind_stop2, ind_start2, m_t, cx, d]):
         # Пересоздаём списки для удобства
-        t = t[:ind_stop2]
-        a = a[:ind_stop2]
-        g = g[:ind_stop2]
+        t = t[ind_start2:ind_stop2 + 1]
+        a = a[ind_start2:ind_stop2 + 1]
+        g = g[ind_start2:ind_stop2 + 1]
         S = pi * (d / 1000) ** 2 / 4
         Ro = pres[ind_start - 50] * 0.029 / (8.31 * (temp[ind_start - 50] + 273))   # Плотность воздуха, получается через уравнение Менделева-Клапейрона
         v = [0]
