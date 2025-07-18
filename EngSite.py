@@ -53,17 +53,19 @@ if uploaded_file:
         tmax = t0 + 130000
         imin = 0
         imax = 0
-        for i in range(len(t)):  # Определяем начальный и конечный индекс для сокращения списков
-            if t[i] >= tmin and not imin:
-                imin = i
-            elif t[i] > tmax:
-                imax = i - 1
-                break
-        # Сокращение списков
-        t = t[imin:imax]
-        ax, ay, az = ax[imin:imax], ay[imin:imax], az[imin:imax]
-        wx, wy, wz = wx[imin:imax], wy[imin:imax], wz[imin:imax]
-        h, temp, pres = h[imin:imax], temp[imin:imax], pres[imin:imax]
+        file_size = uploaded_file.size
+        if file_size >= 5 * 2 ** 10 * 2 ** 10:
+            for i in range(len(t) - 1):  # Определяем начальный и конечный индекс для сокращения списков
+                if t[i] >= tmin and not imin:
+                    imin = i
+                elif t[i] > tmax:
+                    imax = i - 1
+                    break
+            # Сокращение списков
+            t = t[imin:imax]
+            ax, ay, az = ax[imin:imax], ay[imin:imax], az[imin:imax]
+            wx, wy, wz = wx[imin:imax], wy[imin:imax], wz[imin:imax]
+            h, temp, pres = h[imin:imax], temp[imin:imax], pres[imin:imax]
         st.write("Обработка файла завершена")
         if 'clicks' not in st.session_state:        # Создание переменной, хранящей координаты точек, на которые кликнул пользователь
             st.session_state.clicks = []        # Переменная, хранящая координаты последней точки, по которой кликнул пользователь
