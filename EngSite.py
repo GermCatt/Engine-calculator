@@ -101,7 +101,7 @@ if uploaded_file:
             line=dict(color='orange', width=2),
             mode='lines'
         ))
-        fig.update_layout(title='График полётных характеристик', clickmode='event+select')
+        fig.update_layout(clickmode='event+select')
         clicked = plotly_events(fig, click_event=True, hover_event=False)
         if clicked and len(st.session_state.clicks) < 2:    # Передаём в переменную последнюю точку, выбранную пользователем
             if st.session_state.ignore_next_click:          # Необходима для корректной работы кнопки сброса
