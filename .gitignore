@@ -6,6 +6,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+Acceleration_test.py
 
 # Виртуальные окружения
 venv/
@@ -21,7 +22,7 @@ venv1/
 # IDE - PyCharm
 .idea/
 
-# VS Code dev containers (если не используется — можно удалить)
+# VS Code dev containers)
 .devcontainer/
 
 # Логи и временные файлы
