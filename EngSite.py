@@ -128,28 +128,27 @@ if t:
     if all([t_start, t_stop > t_start, asix]):
         fig3.add_trace(go.Scatter(
             x=t, y=[ax, ay, az]['xyz'.index(asix)],
-            name="h(t)",
-            line=dict(color='blue', width=2),
-            mode='lines'
-        ))
-        fig3.add_trace(go.Scatter(
-            x=t, y=[ax, ay, az]['xyz'.index(asix)],
-            name="h(t)",
+            name=f"a{'xyz'['xyz'.index(asix)]}(t)",
             line=dict(color='blue', width=2),
             mode='lines'
         ))
         fig3.add_trace(go.Scatter(
             x=[t_start] * 2, y=[min([ax, ay, az]['xyz'.index(asix)]), max([ax, ay, az]['xyz'.index(asix)])],
-            name="h(t)",
-            line=dict(color='red', width=2),
+            line=dict(dash='dash', color='red', width=2),
+            name='Диапазон',
             mode='lines'
         ))
         fig3.add_trace(go.Scatter(
             x=[t_stop] * 2, y=[min([ax, ay, az]['xyz'.index(asix)]), max([ax, ay, az]['xyz'.index(asix)])],
-            name="h(t)",
-            line=dict(color='red', width=2),
+            line=dict(dash='dash', color='red', width=2),
+            name='Диапазон',
             mode='lines'
         ))
+        fig3.update_layout(
+            title="Кажущиеся ускорения вдоль выбранной оси и введённый диапазон времени работы двигтаеля",
+            xaxis_title="Время, мс",
+            yaxis_title="Ускорение, м/c^2"
+        )
         st.plotly_chart(fig3, use_container_width=True)
     m_st = st.number_input(     # Ввод пользователем стартовой массы ракеты
         "Стартовая масса ракеты вместе с топливом (кг)",
