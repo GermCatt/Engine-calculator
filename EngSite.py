@@ -209,9 +209,12 @@ if t:
                 ayn.append(i[1])
                 azn.append(i[2])
             ind = 'xyz'.index(asix)
-            g = [-1 * i[ind] for i in
-                 att.get_gs()]  # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
+            g = [i[ind] for i in att.get_gs()]  # Создание списка ускорений свободного падения в проекции на ось ракеты, посчитанных attitude
             a = [axn, ayn, azn][ind]
+            if abs(min(a)) > abs(max(a)):
+                a = list(map(lambda ff: -1 * ff, a))
+            if abs(min(g)) > abs(max(g)):
+                g = list(map(lambda ff: -1 * ff, g))
             ind_stop2 = ind_stop
             ind_start2 = ind_start
             for i in range(len(a) // 2):
