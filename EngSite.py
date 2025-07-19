@@ -277,7 +277,7 @@ if t:
                 mode='lines'
             ))
             fig2.update_layout(
-                title=f"Тяговый профиль двигателя, полный импульс {p} Н*с",
+                title=f"Тяговый профиль двигателя, полный импульс {round(p, 2)} Н*с",
                 xaxis_title="Время, с",
                 yaxis_title="Тяга, Н"
             )
